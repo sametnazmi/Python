@@ -1,0 +1,2 @@
+# Python
+Artifical Intelligence Trainings
