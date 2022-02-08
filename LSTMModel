@@ -1,0 +1,116 @@
+# The program predicts the price of Bitcoin for the next 30 days
+#Import the libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import Activation
+from keras.models import load_model
+import csv
+
+#Load the data
+from google.colab import files
+uploaded = files.upload()
+
+df = pd.read_csv('ETHUSDT_minute.csv',delimiter=',')
+df.head(7)
+
+#Deleting Not Used Columns
+del df['unix']
+del df['date']
+del df['symbol']
+del df['Volume ETH']
+
+#Arrange Last to First
+df= df.iloc[::-1]
+df= df.iloc[::-1]
+df=df.loc[::-1].reset_index(drop = True)
+
+# We want 80% of the data to be used for training, and 20% for testing
+n_train_rows = int(df.shape[0]*.8)-1
+
+# Split into train and test sets but keep all 9 columns
+train = df.iloc[:n_train_rows, :]
+test = df.iloc[n_train_rows:, :]
+
+# Normalise features
+sc = MinMaxScaler(feature_range = (0, 1))
+training_set_scaled = sc.fit_transform(train.values)
+test_set_scaled = sc.fit_transform(test.values)
+steps = 50
+# Prepare the training data
+x_train = []
+y_train = []
+
+for i in range(steps, training_set_scaled.shape[0]-steps):
+    x_train.append(training_set_scaled[i-steps:i, :])
+    y_train.append(training_set_scaled[i, :])
+
+x_train, y_train = np.array(x_train), np.array(y_train)
+
+# Prepare the test data
+x_test = []
+y_test = []
+
+for i in range(steps, test_set_scaled.shape[0]):
+    x_test.append(test_set_scaled[i-steps:i, :])
+    y_test.append(test_set_scaled[i, :])
+
+x_test, y_test = np.array(x_test), np.array(y_test)
+print(x_test.shape)
+
+#Creating LSTM Module as LSTM
+model = Sequential()
+
+epochs = 5
+
+model.add(LSTM(units=10, return_sequences = True, input_shape=(x_train.shape[0],6)))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50, return_sequences = True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50, return_sequences = True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50))
+model.add(Dropout(0.2))
+model.add(Dense(units=6))
+model.compile(loss="mse", optimizer="adam")
+model.fit(x_train, y_train, batch_size = 32, epochs = epochs)
+model.summary
+
+model.save("multiple_features_"+str(steps)+"_steps_"+str(epochs)+"_epochs.h5")
+
+# Evaluate the model on the test data using `evaluate`
+print('\n# Evaluate on test data')
+results = model.evaluate(x_test, y_test, batch_size=32)
+print('test loss, test acc:', results)
+
+# Predict values from test data trained using training data
+y_hat = model.predict(x_test)
+y_hat = sc.inverse_transform(y_hat)
+
+y_test = test[steps:].reset_index()
+
+# Visualise the ask_price predictions
+plt.figure(figsize = (18,9))
+plt.plot(y_test['close'], color = 'red', label = 'y_test')
+plt.plot(y_hat[:,0], color = 'blue', label = 'y_hat')
+plt.title('y_hat["close"] vs y_test["close"]')
+plt.ylabel('close')
+plt.legend()
+plt.show()
+
+# Visualise the bid_price predictions
+plt.figure(figsize = (18,9))
+plt.plot(y_test['open'], color = 'red', label = 'y_test')
+plt.plot(y_hat[:,3], color = 'blue', label = 'y_hat')
+plt.title('y_hat["open"] vs y_test["open"]')
+plt.ylabel('open')
+plt.legend()
+plt.show()
+
+
+
