@@ -1,0 +1,100 @@
+!pip install selenium
+!pip install beautifulsoup4
+
+from selenium import webdriver
+from bs4 import BeautifulSoup
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import Activation
+from keras.models import load_model
+
+import csv
+import requests
+import time
+import re
+from time import sleep
+
+
+!apt-get update 
+!apt install chromium-chromedriver
+
+from selenium import webdriver
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+wd = webdriver.Chrome('chromedriver',chrome_options=chrome_options)
+driver =webdriver.Chrome('chromedriver',chrome_options=chrome_options)
+
+
+driver.get("https://primexbt.com/")
+
+prices=[] #List to store name of the product
+currency=[] #List to store name of the product
+products=[]
+prices_parsed=[]
+
+df=None
+df3=None
+df5=None
+df10=None
+df6 = pd.DataFrame({'Bitcoin':prices})
+price_parsed=0
+prices_parsed_old=0
+numeric_const_pattern = '[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?'
+rx = re.compile(numeric_const_pattern, re.VERBOSE)
+price_old=0
+n_train_rows = 0
+prices_parsed=[]
+plot_parsed=[]
+
+n = 1200
+for i in range(0, n):
+  content = driver.page_source
+  soup = BeautifulSoup(content)
+  resultsRow = soup.find('div', attrs={'class':'tickers__main-info'})
+  price=resultsRow.find('div', attrs={'class':'tickers__price-value'})
+  price=rx.findall(str(price.text))
+  prices.append(price)
+  df = pd.DataFrame({'Bitcoin':prices})
+
+  df3 = pd.DataFrame(df['Bitcoin'].to_list(), columns=['A','B'])
+  df6.loc[1,'Bitcoin']=int(df3.iloc[0,0])*1000+float(df3.iloc[0,1])
+  price_parsed=df6.loc[1,'Bitcoin']
+
+  if prices_parsed!=prices_parsed_old:
+    prices_parsed.append(price_parsed)
+    df10 = pd.DataFrame({'Bitcoin':prices_parsed})
+  else:
+    prices_parsed.append((price_parsed+df10.iloc[-1, df10.columns.get_loc('Bitcoin')])/2)
+    df10 = pd.DataFrame({'Bitcoin':prices_parsed})
+
+  prices_parsed_old=prices_parsed
+
+  plot_parsed.append(price_parsed)
+  df11 = pd.DataFrame({'Bitcoin':plot_parsed})
+  #WOWRow = soup.find('div', attrs={'class':'tickers__price-value'})
+  results = []
+  print("df3",df3.tail(1))
+  print("df6",df6.tail(1))
+  print("df10",df10.tail(1))
+  prices=[]
+  n_train_rows = int(df.shape[0])
+  df=None
+  sleep(0.85)
+plt.figure(figsize = (18,9))
+plt.plot(df10['Bitcoin'], color = 'red', label = 'Filtered Values')
+plt.plot(df11['Bitcoin'], color = 'green', label='No Filter Values', linestyle='--')
+plt.title('Filtered Bitcoin Values vs No Filter Bitcoin Values')
+plt.ylabel('Bitcoin Price')
+plt.legend()
+plt.show()
+
+##BELOW CODE NOT ADDED BECAUSE DATA IS TAKEN SO LSTM MODEL CAN BE APPLIED
