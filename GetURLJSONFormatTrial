@@ -1,0 +1,51 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import Activation
+from keras.models import load_model
+import csv
+import requests
+import datetime
+import json
+
+url = "https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC,ETH&tsyms=USD,EUR"
+JSONContent = requests.get(url).json()
+content = json.dumps(JSONContent, indent = 1, sort_keys=True)
+print(content)
+
+prices = ["ETH", "BTC"]
+prices_list = []
+
+for price in prices:
+    JSONContent = requests.get("https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC,ETH&tsyms=USD,EUR" + price).json()
+    if 'error' not in JSONContent:
+        prices_list.append([JSONContent['ETH'], JSONContent['BTC']])
+                         
+df = pd.DataFrame(prices_list)
+
+df.columns = ['Etherium', 'Bitcoin']
+df.dropna(axis = 0, how = 'any', inplace = True)
+df.index = pd.RangeIndex(len(dataset.index))
+
+df.to_csv('trial_coin_data.csv', index = False, header=True)
+
+new_df = pd.read_csv('trial_coin_data.csv',delimiter=',')
+new_df.head()
+#print(df)
+
+
+def minute_price_historical  (symbol, comparison_symbol, e, allData='true'):
+  URL='https://min-api.cryptocompare.com/data/v2/histominute?fsym=BTC&tsym=GBP&limit=10'\
+  .format(symbol.upper, comparison_symbol.upper, e, allData)
+  page=requests.get(URL)
+  data=page.json()['Data']
+  df=pd.DataFrame(data)
+  df['timestamp']=[datetime.datetime.fromtimestamp(d) for d in df.TimeFrom]
+  df['Data']=[df.Data]
+  df1=df
+  return df1
