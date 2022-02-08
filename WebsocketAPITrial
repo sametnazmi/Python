@@ -1,0 +1,184 @@
+import asyncio
+import pathlib
+import ssl
+import websockets
+import nest_asyncio
+import json
+import logging
+import pprint
+import websocket
+from websocket import create_connection
+from websocket import create_connection
+from dictparse import DictionaryParser
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import Activation
+from keras.models import load_model
+
+import csv
+import requests
+import time
+import re
+from time import sleep
+
+import sys
+import argparse
+import json
+from websocket import WebSocketConnectionClosedException
+
+ws = create_connection("wss://ws.bitstamp.net/")
+
+ws.send(json.dumps({"event": "bts:subscribe","data": {"channel": "live_trades_btcusd"}}))
+print("Sent subscribe")
+result =  ws.recv()
+print(result)
+
+ws.send(json.dumps({"event": "bts:subscribe","data": {"channel": "detail_order_book_btcusd"}}))
+print("Sent subscribe")
+result =  ws.recv()
+print(result)
+
+
+n=20
+for i in range(0, n):
+  ws.send(json.dumps({"event": "trade","data": {"channel": "live_trades_btcusd]"}}))
+  print("Sent order_created")
+  result =  ws.recv()
+  data = json.dumps(result)
+  print(data,"\n")
+
+  ws.send(json.dumps({"event": "trade ","data": {"channel": "live_trades_btcusd]"}}))
+  print("Sent order_changed")
+  result =  ws.recv()
+  data = json.dumps(result)
+  print(data,"\n")
+
+  ws.send(json.dumps({"event": "trade ","data": {"channel": "detail_order_book_btcusd]"}}))
+  print("Sent order_changed")
+  result =  ws.recv()
+  data = json.dumps(result)
+  print(data,"\n")
+
+
+  ws.send(json.dumps({"event": "trade","data": {"channel": "live_trades_btcusd]"}}))
+  print("Sent order_deleted")
+  result =  ws.recv()
+  data = json.dumps(result)
+  print(data,"\n")
+
+  sleep(1)
+
+ws.close()
+
+import bitstamp.client
+public_client = bitstamp.client.Public()
+
+print("ticker\n",public_client.ticker())
+
+print("ticker_hour\n",public_client.ticker_hour())
+
+print("order_book\n",public_client.order_book())
+
+print("transactions\n",public_client.transactions(time='minute'))
+
+print("conversion_rate_usd_eur\n",public_client.conversion_rate_usd_eur())
+
+print("trading_pairs_info\n",public_client.trading_pairs_info())
+
+
+trading_client = bitstamp.client.Trading(username='XXX', key='XXXXXX', secret='XXXX....XXXX...XXXX')
+
+print("account_balance\n",trading_client.account_balance())
+
+print("user_transactions\n",trading_client.user_transactions())
+
+print("open_orders\n",trading_client.open_orders())
+
+print("all_open_orders\n",trading_client.all_open_orders())
+
+
+public_client = Public()
+
+#print("ticker\n",public_client.ticker())
+
+#print("ticker_hour\n",public_client.ticker_hour())
+
+#print("order_book\n",public_client.order_book())
+
+#print("transactions\n",public_client.transactions(time='minute'))
+
+#print("conversion_rate_usd_eur\n",public_client.conversion_rate_usd_eur())
+
+#print("trading_pairs_info\n",public_client.trading_pairs_info())
+
+#print("OHLC_data\n",public_client.OHLC_data()['data'])
+
+
+json_array = json.dumps(public_client.OHLC_data()['data']['ohlc'])
+parsed_json = json.loads(json_array)
+print("PARSED JSON",json.dumps(parsed_json, indent=6, sort_keys=True))
+
+      
+# for printing the key-value pair of
+# nested dictionary for looop can be used
+
+open_value_list=[]
+high_value_list=[]
+low_value_list=[]
+close_value_list=[]
+volume_value_list=[]
+
+
+for i in parsed_json:
+  open_value=float(i['open'])
+  open_value_list.append(open_value)
+
+  high_value=float(i['high'])
+  high_value_list.append(high_value)
+
+  low_value=float(i['low'])
+  low_value_list.append(low_value)
+
+  close_value=float(i['close'])
+  close_value_list.append(close_value)
+
+  volume_value=float(i['volume'])
+  volume_value_list.append(volume_value*((high_value+low_value)/2))
+
+
+#print("open_value_list:", open_value_list)
+#print("high_value_list:", high_value_list)
+#print("low_value_list:", low_value_list)
+#print("close_value_list:", close_value_list)
+
+df = pd.DataFrame({'open_value':open_value_list,'high_value':high_value_list,'low_value':low_value_list,'close_value':close_value_list,'volume_value':volume_value_list})
+print(df.head(5))
+
+plt.figure(figsize = (18,9))
+plt.plot(df['open_value'], color = 'red', label = 'open_value')
+plt.plot(df['high_value'], color = 'green', label = 'high_value')
+plt.plot(df['low_value'], color = 'blue', label = 'low_value')
+plt.plot(df['close_value'], color = 'yellow', label = 'close_value')
+plt.plot(df['volume_value'], color = 'black', label = 'volume_value')
+
+plt.title('Filtered Bitcoin Values vs No Filter Bitcoin Values')
+plt.ylabel('Bitcoin Prices')
+plt.legend()
+plt.show()
+
+trading_client = bitstamp.client.Trading(username='xxxx', key='XXXXXX', secret='XXXXXXXXXXXX')
+
+#print("account_balance\n",trading_client.account_balance())
+
+#print("user_transactions\n",trading_client.user_transactions())
+
+#print("open_orders\n",trading_client.open_orders())
+
+#print("all_open_orders\n",trading_client.all_open_orders())
